@@ -8,6 +8,7 @@ add_compile_options(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+find_package(libpointmatcher 1.1.0 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rosbag
@@ -82,7 +83,7 @@ add_executable(dream_offline_transformer src/main.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 message("libpointchecker_LIBRARIES: ${libpointchecker_LIBRARIES}")
 ## Specify libraries to link a library or executable target against
- target_link_libraries(dream_offline_transformer yaml-cpp
+ target_link_libraries(dream_offline_transformer yaml-cpp ${libpointmatcher_LIBRARIES}
    ${catkin_LIBRARIES} 
  )
 

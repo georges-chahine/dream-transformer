@@ -18,7 +18,7 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/io/vtk_io.h>
-
+#include "pointmatcher/IO.h"
 using namespace std;
 using namespace Eigen;
 
@@ -330,11 +330,35 @@ int main(int argc, char *argv[]){
             std::cout<<strPcdName<<endl;
             pcl::io::savePCDFileASCII (strPcdName, *pointCloud);
             pcl::io::savePLYFileASCII (strPlyName, *pointCloud);
-            pcl::PCLPointCloud2 msg;
-            pcl::toPCLPointCloud2 (*pointCloud, msg);
-            pcl::io::saveVTKFile (strVtkName, msg);
+// //////////////////////////////////////////VTK/////////////////////////////////////////////////////
+            typedef PointMatcher<float> PM;
+            typedef PM::DataPoints DP;
+            DP data;
+            Eigen::MatrixXf datax(1,pointCloud->getMatrixXfMap(3,8,0).row(0).size());
+            Eigen::MatrixXf datay(1,pointCloud->getMatrixXfMap(3,8,0).row(1).size());
+            Eigen::MatrixXf dataz(1,pointCloud->getMatrixXfMap(3,8,0).row(2).size());
+            datax=pointCloud->getMatrixXfMap(3,8,0).row(0);
+            datay=pointCloud->getMatrixXfMap(3,8,0).row(1);
+            dataz=pointCloud->getMatrixXfMap(3,8,0).row(2);
+            data.addFeature("x", datax);
+            data.addFeature("y", datay);
+            data.addFeature("z", dataz);
+            bool semantics=true;
+            if (semantics)
+            {
+                Eigen::MatrixXf dataSemantics(1,pointCloud->getMatrixXfMap(3,8,0).row(0).size());
+                for (unsigned int j=0; j<pointCloud->points.size(); j++){
+                    dataSemantics(0,j)=(float)pointCloud->points[j].label;
+                }
+                data.addDescriptor("semantics", dataSemantics);
+            }
+
+           // pcl::PCLPointCloud2 msg;
+           // pcl::toPCLPointCloud2 (*pointCloud, msg);
+            //pcl::io::saveVTKFile (strVtkName, msg);
             //XYZRGBL.push_back(*pc2);
             pc2=NULL;
+            data.save(strVtkName);
 
         }
     }
