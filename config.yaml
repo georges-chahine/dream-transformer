@@ -4,7 +4,6 @@ pathOut: "/home/gchahine/transformerOutput/"
 autoMatchDir:
 - "/home/gchahine/outbound/0/"
 - "/home/gchahine/outbound/1/"
-- "/home/gchahine/outbound/2/"
 autoNameTemplate: "semantic_icp_"
 transformsCsv: "/home/gchahine/packages/dream-multi-checker/build/ol_transforms.csv"
 transformsG2o: "/home/gchahine/packages/dream-optimizer/build/example_g2o_opt.g2o"

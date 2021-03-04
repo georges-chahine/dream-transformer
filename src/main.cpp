@@ -57,7 +57,7 @@ Eigen::MatrixXd load_g2o (std::string path, MatrixXd transforms0) {
 
     for (int i=0; i<=idxNbrV.back(); i++){
 
-       // std::cout<<"current KF " <<i%(maxKF+1)<<" current T "<< int (i)/(maxKF+1) <<std::endl;
+        // std::cout<<"current KF " <<i%(maxKF+1)<<" current T "<< int (i)/(maxKF+1) <<std::endl;
         //std::cout<<"current KF " <<int(i/maxKF)<<std::endl;
         int KF=i%(maxKF+1);
         int T=int (i/(maxKF+1));
@@ -325,36 +325,75 @@ int main(int argc, char *argv[]){
                 pointCloud->points[jj].z=pcPointsTransformed[2];
 
             }
+            pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pointCloudFiltered (new pcl::PointCloud<pcl::PointXYZRGBL>);
 
+
+            for (unsigned int jj=0; jj<pointCloud->points.size(); jj++){
+
+                if (pointCloud->points[jj].label <= 10){
+
+                    pointCloudFiltered->points.push_back(pointCloud->points[jj]);
+                }
+
+
+            }
 
             std::cout<<strPcdName<<endl;
             pcl::io::savePCDFileASCII (strPcdName, *pointCloud);
             pcl::io::savePLYFileASCII (strPlyName, *pointCloud);
-// //////////////////////////////////////////VTK/////////////////////////////////////////////////////
+            // //////////////////////////////////////////VTK/////////////////////////////////////////////////////
             typedef PointMatcher<float> PM;
             typedef PM::DataPoints DP;
             DP data;
-            Eigen::MatrixXf datax(1,pointCloud->getMatrixXfMap(3,8,0).row(0).size());
-            Eigen::MatrixXf datay(1,pointCloud->getMatrixXfMap(3,8,0).row(1).size());
-            Eigen::MatrixXf dataz(1,pointCloud->getMatrixXfMap(3,8,0).row(2).size());
-            datax=pointCloud->getMatrixXfMap(3,8,0).row(0);
-            datay=pointCloud->getMatrixXfMap(3,8,0).row(1);
-            dataz=pointCloud->getMatrixXfMap(3,8,0).row(2);
+            Eigen::MatrixXf datax(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(0).size());
+            Eigen::MatrixXf datay(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(1).size());
+            Eigen::MatrixXf dataz(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(2).size());
+            datax=pointCloudFiltered->getMatrixXfMap(3,8,0).row(0);
+            datay=pointCloudFiltered->getMatrixXfMap(3,8,0).row(1);
+            dataz=pointCloudFiltered->getMatrixXfMap(3,8,0).row(2);
             data.addFeature("x", datax);
             data.addFeature("y", datay);
             data.addFeature("z", dataz);
             bool semantics=true;
+
+
+            std::vector<std::string> labels { "Ground",  //0
+                                              "Sidewalk", //1
+                                              "Building", //2
+                                              "Wall", //3
+                                              "Fence", //4
+                                              "Build", //5
+                                              "Pole",
+                                              "Traffic sign",
+                                              "Vegetation",   //8
+                                              "Terrain",      //9
+                                              "Sky",   //10
+                                              "Person", //11
+                                              "Rider", //12
+                                              "Car", //13
+                                              "Truck", //14
+                                              "Bus", //15
+                                              "Train", //16
+                                              "Motorcyle", //17
+                                              "Bicycle", //18
+                                              "Labelless", //19
+                                              "Other"}; //20
+
+
+
             if (semantics)
             {
-                Eigen::MatrixXf dataSemantics(1,pointCloud->getMatrixXfMap(3,8,0).row(0).size());
-                for (unsigned int j=0; j<pointCloud->points.size(); j++){
-                    dataSemantics(0,j)=(float)pointCloud->points[j].label;
+                Eigen::MatrixXf dataSemantics(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(0).size());
+                for (unsigned int j=0; j<pointCloudFiltered->points.size(); j++){
+                    dataSemantics(0,j)=(float)pointCloudFiltered->points[j].label;
+
+
                 }
                 data.addDescriptor("semantics", dataSemantics);
             }
 
-           // pcl::PCLPointCloud2 msg;
-           // pcl::toPCLPointCloud2 (*pointCloud, msg);
+            // pcl::PCLPointCloud2 msg;
+            // pcl::toPCLPointCloud2 (*pointCloud, msg);
             //pcl::io::saveVTKFile (strVtkName, msg);
             //XYZRGBL.push_back(*pc2);
             pc2=NULL;
