@@ -330,7 +330,7 @@ int main(int argc, char *argv[]){
 
             for (unsigned int jj=0; jj<pointCloud->points.size(); jj++){
 
-                if (pointCloud->points[jj].label <= 10){
+                if (pointCloud->points[jj].label < 10){
 
                     pointCloudFiltered->points.push_back(pointCloud->points[jj]);
                 }
@@ -339,8 +339,8 @@ int main(int argc, char *argv[]){
             }
 
             std::cout<<strPcdName<<endl;
-            pcl::io::savePCDFileASCII (strPcdName, *pointCloud);
-            pcl::io::savePLYFileASCII (strPlyName, *pointCloud);
+            pcl::io::savePCDFileASCII (strPcdName, *pointCloudFiltered);
+            pcl::io::savePLYFileASCII (strPlyName, *pointCloudFiltered);
             // //////////////////////////////////////////VTK/////////////////////////////////////////////////////
             typedef PointMatcher<float> PM;
             typedef PM::DataPoints DP;
