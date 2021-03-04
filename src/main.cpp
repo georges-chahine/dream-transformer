@@ -22,9 +22,135 @@
 using namespace std;
 using namespace Eigen;
 
+
+Eigen::MatrixXd load_g2o (std::string path, MatrixXd transforms0) {
+
+    std::string line;
+    std::ifstream inFile(path);
+
+    std::string str;
+    double x,y,z,qx,qy,qz,qw;
+    std::vector<double> xV,yV,zV,qxV,qyV,qzV,qwV;
+    unsigned int idxNbr;
+    std::vector<unsigned int> idxNbrV;
+
+    time_t t1;
+    float temprature;
+
+    int maxKF=transforms0(transforms0.rows()-1,0);
+    std::cout<<"maxKF is " <<maxKF<<std::endl;
+    while (inFile >> str >>idxNbr >> x >>y >>z >>qx>>qy>>qz>>qw)
+    {
+        if (str!="VERTEX_SE3:QUAT"){break;};
+        xV.push_back(x);
+        yV.push_back(y);
+        zV.push_back(z);
+        qxV.push_back(qx);
+        qyV.push_back(qy);
+        qzV.push_back(qz);
+        qwV.push_back(qw);
+        idxNbrV.push_back(idxNbr);
+        //cout << x << " " << y << endl;
+
+    }
+    vector<vector<int>> idxNbrV2;
+
+    for (int i=0; i<=idxNbrV.back(); i++){
+
+       // std::cout<<"current KF " <<i%(maxKF+1)<<" current T "<< int (i)/(maxKF+1) <<std::endl;
+        //std::cout<<"current KF " <<int(i/maxKF)<<std::endl;
+        int KF=i%(maxKF+1);
+        int T=int (i/(maxKF+1));
+        idxNbrV2.push_back(std::vector<int> {KF, T, i});
+
+    }
+
+    Eigen::MatrixXd transforms(idxNbrV2.size(),10);
+
+
+    //Eigen::MatrixXd transforms1(1,idxNbrV.size());
+
+    for (int i=0; i<transforms.rows(); i++){
+
+
+        transforms(i,0)=idxNbrV2[i][0];
+        transforms(i,1)=idxNbrV2[i][1];
+        bool found=false;
+        for (int j=0; j<idxNbrV.size(); j++){
+
+
+            if (idxNbrV[j]==idxNbrV2[i][2]){
+                transforms(i,2)=xV[j];
+                transforms(i,3)=yV[j];
+                transforms(i,4)=zV[j];
+                transforms(i,5)=qxV[j];
+                transforms(i,6)=qyV[j];
+                transforms(i,7)=qzV[j];
+                transforms(i,8)=qwV[j];
+                found=true;
+
+            }
+        }
+
+        if (!found){
+
+            transforms(i,2)=0;
+            transforms(i,3)=0;
+            transforms(i,4)=0;
+            transforms(i,5)=0;
+            transforms(i,6)=0;
+            transforms(i,7)=0;
+            transforms(i,8)=1;
+
+
+        }
+
+        for (int j=0; j<transforms0.rows(); j++){
+
+            if (transforms0(j,0)==idxNbrV2[i][0] && transforms0(j,1)==idxNbrV2[i][1]){
+
+                transforms(i,9)=transforms0(j,9);
+
+            }
+
+        }
+
+
+    }
+
+    inFile.close();
+
+    std::cout<<transforms<<std::endl;
+
+    return transforms;
+}
+/*
+Eigen::MatrixXd load_g2o (std::string path) {
+
+    std::string line;
+    std::ifstream infile(path);
+
+    while (std::getline(infile, line))  // this does the checking!
+    {
+      std::istringstream iss(line);
+      char c;
+
+      while (iss >> c)
+      {
+
+          std::cout<<c;
+        //int value = c - '0';
+        // process value
+      }
+      std::cout<<std::endl;
+    }
+
+
+
+    return Eigen::Matrix4d::Identity();
+}
+*/
 template<typename M>
-
-
 M load_csv (const std::string & path) {
     std::ifstream indata;
     indata.open(path);
@@ -51,13 +177,30 @@ int main(int argc, char *argv[]){
     float leafSize=std::stod(leafSize0);
     std::string autoNameTemplate = config["autoNameTemplate"].as<std::string>();
     std::string transformsFile= config["transformsCsv"].as<std::string>();
+    std::string g2oFile= config["transformsG2o"].as<std::string>();
     std::string pathOut = config["pathOut"].as<std::string>();
     std::vector<std::string> autoMatchDir = config["autoMatchDir"].as<std::vector<std::string>>();
+    std::string useG2oStr = config["useG2o"].as<std::string>();
+
+    bool useG2o=false;
+
+    if (useG2oStr=="True" || useG2oStr=="true")
+    {
+        useG2o=true;
+    }
     std::vector<std::vector<std::string>> pcdFiles;
     std::vector<std::vector<std::string>> csvFiles;
     int dirNumber=autoMatchDir.size();
     dir=mkdir (pathOut.c_str(),S_IRWXU);
-    MatrixXd transforms = load_csv<MatrixXd>(transformsFile);
+    MatrixXd transforms ;
+    if (useG2o){
+        MatrixXd transforms0 = load_csv<MatrixXd>(transformsFile);
+        transforms = load_g2o(g2oFile, transforms0);
+
+    }
+    else{
+        transforms = load_csv<MatrixXd>(transformsFile);
+    }
     for (unsigned int i=0;  i<dirNumber; i++ )
     {
         std::string currentPath=pathOut+"/"+std::to_string(i)+"/";
