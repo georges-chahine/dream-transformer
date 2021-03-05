@@ -230,6 +230,19 @@ int main(int argc, char *argv[]){
         pcdFiles.push_back(pcdFile);
         csvFiles.push_back(csvFile);
     }
+
+    std::vector<std::ofstream> poses;
+    for (int i=0; i<pcdFiles.size(); i++){
+
+        std::ofstream poseStream;
+        poseStream.precision(20);
+        std::string posePath= pathOut + "/"+ std::to_string(i)+ "/pose.csv" ;
+        poseStream.open (posePath.c_str(), std::fstream::out | std::fstream::app);
+        poses.push_back(std::move(poseStream));
+    }
+
+
+
     for (unsigned int k=0; k<pcdFiles[0].size();k++){
 
 
@@ -271,7 +284,33 @@ int main(int argc, char *argv[]){
 
 
             pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pc2 (new pcl::PointCloud<pcl::PointXYZRGBL>);
+            Eigen::MatrixXd trajectory=load_csv<MatrixXd>(csvFiles[ii][k]);
+            for (int j=0; j<trajectory.rows(); j++){
 
+                double xPt=trajectory(j,1)-trajectory(0,1);
+                double yPt=trajectory(j,2)-trajectory(0,2);
+                double zPt=trajectory(j,3)-trajectory(0,3);
+                double qxPt=trajectory(j,4);
+                double qyPt=trajectory(j,5);
+                double qzPt=trajectory(j,6);
+                double qwPt=trajectory(j,7);
+                Eigen::Matrix4d M=Eigen::Matrix4d::Identity();
+                Eigen::Quaterniond qRot(qwPt, qxPt, qyPt, qzPt);
+                Eigen::Matrix3d rot(qRot);
+                M.block(0,0,3,3)=rot;
+                M(0,3)=xPt; M(1,3)=yPt; M(2,3)=zPt;
+                M=tf*M;
+                trajectory(j,1)=M(0,3);
+                trajectory(j,2)=M(1,3);
+                trajectory(j,3)=M(2,3);
+                rot=M.block(0,0,3,3);
+                Eigen::Quaterniond qRot2(rot);
+                trajectory(j,4)=qRot2.x();
+                trajectory(j,5)=qRot2.y();
+                trajectory(j,6)=qRot2.z();
+                trajectory(j,7)=qRot2.w();
+
+            }
             if (pcl::io::loadPCDFile<pcl::PointXYZRGBL> (pcdFiles[ii][k], *pc2) == -1) //* load the file
             {
                 PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
@@ -296,13 +335,20 @@ int main(int argc, char *argv[]){
             std::string strPcdName=currentPath+"/"+autoNameTemplate+std::to_string(k)+".pcd";
             std::string strPlyName=currentPath+"/"+autoNameTemplate+std::to_string(k)+".ply";
             std::string strVtkName=currentPath+"/"+autoNameTemplate+std::to_string(k)+".vtk";
+            std::string strCsvName=currentPath+"/"+autoNameTemplate+std::to_string(k)+".csv";
 
+            std::ofstream csvOutput;
+            csvOutput.open(strCsvName);
+            csvOutput<<std::fixed<<setprecision(20);
+            for (int j=0; j<trajectory.rows(); j++){
+
+                csvOutput<<trajectory(j,0)<<","<<trajectory(j,1)<<","<<trajectory(j,2)<<","<<trajectory(j,3)<<","<<trajectory(j,4)<<","<<trajectory(j,5)<<","<<trajectory(j,6)<<","<<trajectory(j,7)<<","<<std::endl;
+                poses[ii]<<trajectory(j,0)<<","<<trajectory(j,1)<<","<<trajectory(j,2)<<","<<trajectory(j,3)<<","<<trajectory(j,4)<<","<<trajectory(j,5)<<","<<trajectory(j,6)<<","<<trajectory(j,7)<<","<<std::endl;
+            }
+
+
+            csvOutput.close();
             //std::cout<<transforms.size();
-
-
-
-
-
             pc2->height=1;
             pc2->width=pc2->points.size();
 
@@ -337,6 +383,8 @@ int main(int argc, char *argv[]){
 
 
             }
+            pointCloudFiltered->height=1;
+            pointCloudFiltered->width=pointCloudFiltered->points.size();
 
             std::cout<<strPcdName<<endl;
             pcl::io::savePCDFileASCII (strPcdName, *pointCloudFiltered);
@@ -400,6 +448,12 @@ int main(int argc, char *argv[]){
             data.save(strVtkName);
 
         }
+    }
+
+    for (int i=0; i<poses.size(); i++){
+
+        poses[i].close();
+
     }
 
 
