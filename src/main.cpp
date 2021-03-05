@@ -285,11 +285,15 @@ int main(int argc, char *argv[]){
 
             pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pc2 (new pcl::PointCloud<pcl::PointXYZRGBL>);
             Eigen::MatrixXd trajectory=load_csv<MatrixXd>(csvFiles[ii][k]);
+            double xInit=trajectory(0,1);
+            double yInit=trajectory(0,2);
+            double zInit=trajectory(0,3);
+
             for (int j=0; j<trajectory.rows(); j++){
 
-                double xPt=trajectory(j,1)-trajectory(0,1);
-                double yPt=trajectory(j,2)-trajectory(0,2);
-                double zPt=trajectory(j,3)-trajectory(0,3);
+                double xPt=trajectory(j,1)-xInit;
+                double yPt=trajectory(j,2)-yInit;
+                double zPt=trajectory(j,3)-zInit;
                 double qxPt=trajectory(j,4);
                 double qyPt=trajectory(j,5);
                 double qzPt=trajectory(j,6);
