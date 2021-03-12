@@ -188,19 +188,36 @@ int main(int argc, char *argv[]){
     {
         useG2o=true;
     }
+
+
+    std::string poseOnlyStr = config["transformPosesOnly"].as<std::string>();
+
+    bool poseOnly=false;
+
+    if (poseOnlyStr=="True" || poseOnlyStr=="true")
+    {
+        poseOnly=true;
+    }
+
+
+
+
     std::vector<std::vector<std::string>> pcdFiles;
     std::vector<std::vector<std::string>> csvFiles;
     int dirNumber=autoMatchDir.size();
     dir=mkdir (pathOut.c_str(),S_IRWXU);
     MatrixXd transforms ;
+    
     if (useG2o){
         MatrixXd transforms0 = load_csv<MatrixXd>(transformsFile);
         transforms = load_g2o(g2oFile, transforms0);
 
     }
+    
     else{
         transforms = load_csv<MatrixXd>(transformsFile);
     }
+    
     for (unsigned int i=0;  i<dirNumber; i++ )
     {
         std::string currentPath=pathOut+"/"+std::to_string(i)+"/";
@@ -283,7 +300,7 @@ int main(int argc, char *argv[]){
 
 
 
-            pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pc2 (new pcl::PointCloud<pcl::PointXYZRGBL>);
+
             Eigen::MatrixXd trajectory=load_csv<MatrixXd>(csvFiles[ii][k]);
             double xInit=trajectory(0,1);
             double yInit=trajectory(0,2);
@@ -315,26 +332,29 @@ int main(int argc, char *argv[]){
                 trajectory(j,7)=qRot2.w();
 
             }
-            if (pcl::io::loadPCDFile<pcl::PointXYZRGBL> (pcdFiles[ii][k], *pc2) == -1) //* load the file
-            {
-                PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
-                return (-1);
+            pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pc2 (new pcl::PointCloud<pcl::PointXYZRGBL>);
+            if (!poseOnly){
+
+                if (pcl::io::loadPCDFile<pcl::PointXYZRGBL> (pcdFiles[ii][k], *pc2) == -1) //* load the file
+                {
+                    PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
+                    return (-1);
+                }
+                std::cout << "Loaded "
+                          << pc2->width * pc2->height
+                          << " data points from "<<pcdFiles[ii][k]<< std::endl;
+                std::vector<int> indices;
+                //  pcl::removeNaNFromPointCloud(*pc2, *pc2, indices);
+
+                pcl::VoxelGrid<pcl::PointXYZRGBL> sor;
+                sor.setInputCloud (pc2);
+                sor.setMinimumPointsNumberPerVoxel(2);
+                sor.setLeafSize (leafSize, leafSize, leafSize);
+                sor.filter (*pc2);
+
+
+                pcl::removeNaNFromPointCloud(*pc2, *pc2, indices);
             }
-            std::cout << "Loaded "
-                      << pc2->width * pc2->height
-                      << " data points from "<<pcdFiles[ii][k]<< std::endl;
-            std::vector<int> indices;
-            //  pcl::removeNaNFromPointCloud(*pc2, *pc2, indices);
-
-            pcl::VoxelGrid<pcl::PointXYZRGBL> sor;
-            sor.setInputCloud (pc2);
-            sor.setMinimumPointsNumberPerVoxel(2);
-            sor.setLeafSize (leafSize, leafSize, leafSize);
-            sor.filter (*pc2);
-
-
-            pcl::removeNaNFromPointCloud(*pc2, *pc2, indices);
-
             std::string currentPath=pathOut+"/"+std::to_string(ii)+"/";
             std::string strPcdName=currentPath+"/"+autoNameTemplate+std::to_string(k)+".pcd";
             std::string strPlyName=currentPath+"/"+autoNameTemplate+std::to_string(k)+".ply";
@@ -352,107 +372,117 @@ int main(int argc, char *argv[]){
 
 
             csvOutput.close();
-            //std::cout<<transforms.size();
-            pc2->height=1;
-            pc2->width=pc2->points.size();
-
-            //            pcl::transformPointCloud (*pc2, *pc2, tf);
-
-            pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pointCloud (new pcl::PointCloud<pcl::PointXYZRGBL>);
-            *pointCloud=*pc2;
-            for (unsigned int jj=0; jj<pc2->points.size(); jj++){
-
-                double x=pc2->points[jj].x; double y=pc2->points[jj].y; double z=pc2->points[jj].z;
-                Eigen::Vector4d pcPoints(x,y,z,1.0);
-                Eigen::Vector4d pcPointsTransformed=tf*pcPoints;
-
-                //  Eigen::Vector4d pcPointsTransformed=transform0.matrix()*pc2base*transformICP.matrix()*pcPoints;
-
-                //transform0*pc2base*
-
-                pointCloud->points[jj].x=pcPointsTransformed[0];
-                pointCloud->points[jj].y=pcPointsTransformed[1];
-                pointCloud->points[jj].z=pcPointsTransformed[2];
-
-            }
-            pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pointCloudFiltered (new pcl::PointCloud<pcl::PointXYZRGBL>);
 
 
-            for (unsigned int jj=0; jj<pointCloud->points.size(); jj++){
+            if (!poseOnly){
 
-                if (pointCloud->points[jj].label < 10){
+                //std::cout<<transforms.size();
+                pc2->height=1;
+                pc2->width=pc2->points.size();
 
-                    pointCloudFiltered->points.push_back(pointCloud->points[jj]);
+                //            pcl::transformPointCloud (*pc2, *pc2, tf);
+
+                pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pointCloud (new pcl::PointCloud<pcl::PointXYZRGBL>);
+                *pointCloud=*pc2;
+                for (unsigned int jj=0; jj<pc2->points.size(); jj++){
+
+                    double x=pc2->points[jj].x; double y=pc2->points[jj].y; double z=pc2->points[jj].z;
+                    Eigen::Vector4d pcPoints(x,y,z,1.0);
+                    Eigen::Vector4d pcPointsTransformed=tf*pcPoints;
+
+                    //  Eigen::Vector4d pcPointsTransformed=transform0.matrix()*pc2base*transformICP.matrix()*pcPoints;
+
+                    //transform0*pc2base*
+
+                    pointCloud->points[jj].x=pcPointsTransformed[0];
+                    pointCloud->points[jj].y=pcPointsTransformed[1];
+                    pointCloud->points[jj].z=pcPointsTransformed[2];
+
                 }
+                pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pointCloudFiltered (new pcl::PointCloud<pcl::PointXYZRGBL>);
 
 
-            }
-            pointCloudFiltered->height=1;
-            pointCloudFiltered->width=pointCloudFiltered->points.size();
+                for (unsigned int jj=0; jj<pointCloud->points.size(); jj++){
 
-            std::cout<<strPcdName<<endl;
-            pcl::io::savePCDFileASCII (strPcdName, *pointCloudFiltered);
-            pcl::io::savePLYFileASCII (strPlyName, *pointCloudFiltered);
-            // //////////////////////////////////////////VTK/////////////////////////////////////////////////////
-            typedef PointMatcher<float> PM;
-            typedef PM::DataPoints DP;
-            DP data;
-            Eigen::MatrixXf datax(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(0).size());
-            Eigen::MatrixXf datay(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(1).size());
-            Eigen::MatrixXf dataz(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(2).size());
-            datax=pointCloudFiltered->getMatrixXfMap(3,8,0).row(0);
-            datay=pointCloudFiltered->getMatrixXfMap(3,8,0).row(1);
-            dataz=pointCloudFiltered->getMatrixXfMap(3,8,0).row(2);
-            data.addFeature("x", datax);
-            data.addFeature("y", datay);
-            data.addFeature("z", dataz);
-            bool semantics=true;
+                    if (pointCloud->points[jj].label < 10){
 
-
-            std::vector<std::string> labels { "Ground",  //0
-                                              "Sidewalk", //1
-                                              "Building", //2
-                                              "Wall", //3
-                                              "Fence", //4
-                                              "Build", //5
-                                              "Pole",
-                                              "Traffic sign",
-                                              "Vegetation",   //8
-                                              "Terrain",      //9
-                                              "Sky",   //10
-                                              "Person", //11
-                                              "Rider", //12
-                                              "Car", //13
-                                              "Truck", //14
-                                              "Bus", //15
-                                              "Train", //16
-                                              "Motorcyle", //17
-                                              "Bicycle", //18
-                                              "Labelless", //19
-                                              "Other"}; //20
-
-
-
-            if (semantics)
-            {
-                Eigen::MatrixXf dataSemantics(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(0).size());
-                for (unsigned int j=0; j<pointCloudFiltered->points.size(); j++){
-                    dataSemantics(0,j)=(float)pointCloudFiltered->points[j].label;
+                        pointCloudFiltered->points.push_back(pointCloud->points[jj]);
+                    }
 
 
                 }
-                data.addDescriptor("semantics", dataSemantics);
+                pointCloudFiltered->height=1;
+                pointCloudFiltered->width=pointCloudFiltered->points.size();
+
+                std::cout<<strPcdName<<endl;
+                pcl::io::savePCDFileASCII (strPcdName, *pointCloudFiltered);
+                pcl::io::savePLYFileASCII (strPlyName, *pointCloudFiltered);
+                // //////////////////////////////////////////VTK/////////////////////////////////////////////////////
+                typedef PointMatcher<float> PM;
+                typedef PM::DataPoints DP;
+                DP data;
+                Eigen::MatrixXf datax(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(0).size());
+                Eigen::MatrixXf datay(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(1).size());
+                Eigen::MatrixXf dataz(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(2).size());
+                datax=pointCloudFiltered->getMatrixXfMap(3,8,0).row(0);
+                datay=pointCloudFiltered->getMatrixXfMap(3,8,0).row(1);
+                dataz=pointCloudFiltered->getMatrixXfMap(3,8,0).row(2);
+                data.addFeature("x", datax);
+                data.addFeature("y", datay);
+                data.addFeature("z", dataz);
+                bool semantics=true;
+
+
+                std::vector<std::string> labels { "Ground",  //0
+                                                  "Sidewalk", //1
+                                                  "Building", //2
+                                                  "Wall", //3
+                                                  "Fence", //4
+                                                  "Build", //5
+                                                  "Pole",
+                                                  "Traffic sign",
+                                                  "Vegetation",   //8
+                                                  "Terrain",      //9
+                                                  "Sky",   //10
+                                                  "Person", //11
+                                                  "Rider", //12
+                                                  "Car", //13
+                                                  "Truck", //14
+                                                  "Bus", //15
+                                                  "Train", //16
+                                                  "Motorcyle", //17
+                                                  "Bicycle", //18
+                                                  "Labelless", //19
+                                                  "Other"}; //20
+
+
+
+                if (semantics)
+                {
+                    Eigen::MatrixXf dataSemantics(1,pointCloudFiltered->getMatrixXfMap(3,8,0).row(0).size());
+                    for (unsigned int j=0; j<pointCloudFiltered->points.size(); j++){
+                        dataSemantics(0,j)=(float)pointCloudFiltered->points[j].label;
+
+
+                    }
+                    data.addDescriptor("semantics", dataSemantics);
+                }
+
+                // pcl::PCLPointCloud2 msg;
+                // pcl::toPCLPointCloud2 (*pointCloud, msg);
+                //pcl::io::saveVTKFile (strVtkName, msg);
+                //XYZRGBL.push_back(*pc2);
+                pc2=NULL;
+                data.save(strVtkName);
+
             }
-
-            // pcl::PCLPointCloud2 msg;
-            // pcl::toPCLPointCloud2 (*pointCloud, msg);
-            //pcl::io::saveVTKFile (strVtkName, msg);
-            //XYZRGBL.push_back(*pc2);
-            pc2=NULL;
-            data.save(strVtkName);
-
         }
+
     }
+
+
+
+
 
     for (int i=0; i<poses.size(); i++){
 
