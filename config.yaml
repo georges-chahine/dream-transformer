@@ -11,7 +11,7 @@ autoMatchDir:
 autoNameTemplate: "semantic_icp_"
 transformsCsv: "/home/gchahine/packages/dream-multi-checker/build/ol_transforms.csv"
 transformsG2o: "/home/gchahine/packages/dream-optimizer/build/example_g2o_opt.g2o"
-useG2o: "false"
+useG2o: "true"
 transformPosesOnly: "true"
 
 
