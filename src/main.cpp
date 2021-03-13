@@ -305,7 +305,8 @@ int main(int argc, char *argv[]){
             double xInit=trajectory(0,1);
             double yInit=trajectory(0,2);
             double zInit=trajectory(0,3);
-
+            Eigen::Matrix4d prevM=Eigen::Matrix4d::Identity();
+            Eigen::Matrix4d M1=Eigen::Matrix4d::Identity();
             for (int j=0; j<trajectory.rows(); j++){
 
                 double xPt=trajectory(j,1)-xInit;
@@ -318,12 +319,21 @@ int main(int argc, char *argv[]){
                 Eigen::Matrix4d M=Eigen::Matrix4d::Identity();
                 Eigen::Quaterniond qRot(qwPt, qxPt, qyPt, qzPt);
                 Eigen::Matrix3d rot(qRot);
-                M.block(0,0,3,3)=rot;
+                //M.block(0,0,3,3)=rot;
                 M(0,3)=xPt; M(1,3)=yPt; M(2,3)=zPt;
-                M=tf*M;
-                trajectory(j,1)=M(0,3);
-                trajectory(j,2)=M(1,3);
-                trajectory(j,3)=M(2,3);
+
+                if (j==0){
+                    M1=tf*M;
+                }
+                else{
+
+                    M1=M1*prevM.inverse()*M;
+                }
+                prevM=M;
+
+                trajectory(j,1)=M1(0,3);
+                trajectory(j,2)=M1(1,3);
+                trajectory(j,3)=M1(2,3);
                 rot=M.block(0,0,3,3);
                 Eigen::Quaterniond qRot2(rot);
                 trajectory(j,4)=qRot2.x();
