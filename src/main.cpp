@@ -322,14 +322,14 @@ int main(int argc, char *argv[]){
                 //M.block(0,0,3,3)=rot;
                 M(0,3)=xPt; M(1,3)=yPt; M(2,3)=zPt;
 
-                if (j==0){
+            //    if (j==0){
                     M1=tf*M;
-                }
-                else{
+             //   }
+             //   else{
 
-                    M1=M1*prevM.inverse()*M;
-                }
-                prevM=M;
+             //       M1=M1*prevM.inverse()*M;
+            //    }
+            //   prevM=M;
 
                 trajectory(j,1)=M1(0,3);
                 trajectory(j,2)=M1(1,3);
