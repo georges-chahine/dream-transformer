@@ -39,7 +39,7 @@ Eigen::MatrixXd load_g2o (std::string path, MatrixXd transforms0) {
 
     int maxKF=transforms0(transforms0.rows()-1,0);
     std::cout<<"maxKF is " <<maxKF<<std::endl;
-    while (inFile >> str >>idxNbr >> x >>y >>z >>qx>>qy>>qz>>qw || inFile.good() )
+    while (inFile >> str >>idxNbr >> x >>y >>z >>qx>>qy>>qz>>qw  )
     {
         std::cout<<str<<std::endl;
         if (str=="FIX"){continue;}
