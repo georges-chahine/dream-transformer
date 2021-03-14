@@ -41,7 +41,8 @@ Eigen::MatrixXd load_g2o (std::string path, MatrixXd transforms0) {
     std::cout<<"maxKF is " <<maxKF<<std::endl;
     while (inFile >> str >>idxNbr >> x >>y >>z >>qx>>qy>>qz>>qw)
     {
-        if (str!="VERTEX_SE3:QUAT"){break;};
+        if (str=="FIXED"){continue;}
+        if (str!="VERTEX_SE3:QUAT"){break;}
         xV.push_back(x);
         yV.push_back(y);
         zV.push_back(z);
