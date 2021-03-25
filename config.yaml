@@ -2,18 +2,16 @@
 voxelSize: "0.2"
 pathOut: "/home/gchahine/transformerOutput/"
 autoMatchDir:
-- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes_old/0/"
-- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes_old/1/"
-- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes_old/2/"
-- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes_old/3/"
-- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes_old/4/"
-- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes_old/5/"
+- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes/new/0/"
+- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes/new/1/"
+- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes/new/2/"
+- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes/new/3/"
+- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes/new/4/"
+- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes/new/5/"
+- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes/new/6/"
+- "/mnt/storage/Backpack_Dataset/cross-seasonal-semantic-dataset/lake-bPearl/keyframes/new/7/"
 autoNameTemplate: "semantic_icp_"
 transformsCsv: "/home/gchahine/packages/dream-multi-checker/build/ol_transforms.csv"
 transformsG2o: "/home/gchahine/packages/dream-optimizer/build/example_g2o_opt.g2o"
 useG2o: "true"
 transformPosesOnly: "true"
-
-
-
-
