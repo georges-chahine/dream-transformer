@@ -170,6 +170,39 @@ M load_csv (const std::string & path) {
     return Map<const Matrix<typename M::Scalar, M::RowsAtCompileTime, M::ColsAtCompileTime, RowMajor>>(values.data(), rows, values.size()/rows);
 }
 
+bool skipFn(MatrixXd transforms, unsigned int k, unsigned ii){
+
+
+    int iTemp=0;
+     Eigen::Matrix4d tf = Eigen::Matrix4d::Identity();
+    for (int i=0; i<transforms.rows(); i++){
+        if (transforms(i,0)==k && transforms(i,1)==ii){
+            //if (k<10 || k>25 || ( ii!=0 && ii!=2) ){continue;}
+            Eigen::Quaterniond q(transforms(i,8),transforms(i,5),transforms(i,6),transforms(i,7));
+            Eigen::Matrix3d rotTf(q);
+            tf.block(0,0,3,3)=rotTf;
+            tf(0,3)=transforms(i,2);
+            tf(1,3)=transforms(i,3);
+            tf(2,3)=transforms(i,4);
+            iTemp=i;
+
+
+
+
+            std::cout<<"tf is \n"<<tf<<std::endl;
+            break;
+        }
+    }
+
+    if (tf.isIdentity(0.01) && transforms(iTemp,9)==0){
+        //cout<<"Validation failed, skipping...\n"<<endl;
+        return true;
+    }
+    return false;
+
+}
+
+
 
 int main(int argc, char *argv[]){
 
@@ -284,12 +317,29 @@ int main(int argc, char *argv[]){
         // std::vector<pcl::PointCloud<pcl::PointXYZRGBL>> XYZRGBL;
         std::vector<std::string> newTrajectories;
 
-        for (int ii=0; ii<pcdFiles.size(); ii++)
+        for (unsigned int ii=0; ii<pcdFiles.size(); ii++)
         {
             newTrajectories.push_back(csvFiles[ii][k]);
 
             Eigen::Matrix4d tf = Eigen::Matrix4d::Identity();
 
+            for (int i=0; i<transforms.rows(); i++){
+                if (transforms(i,0)==k && transforms(i,1)==ii){
+                    //if (k<10 || k>25 || ( ii!=0 && ii!=2) ){continue;}
+                    Eigen::Quaterniond q(transforms(i,8),transforms(i,5),transforms(i,6),transforms(i,7));
+                    Eigen::Matrix3d rotTf(q);
+                    tf.block(0,0,3,3)=rotTf;
+                    tf(0,3)=transforms(i,2);
+                    tf(1,3)=transforms(i,3);
+                    tf(2,3)=transforms(i,4);
+
+                    std::cout<<"tf is \n"<<tf<<std::endl;
+                    break;
+                }
+            }
+
+
+            /*
             int iTemp=0;
 
             for (int i=0; i<transforms.rows(); i++){
@@ -316,7 +366,13 @@ int main(int argc, char *argv[]){
                 continue;
             }
 
+*/
+            if (skipFn(transforms,k,ii)){
 
+                cout<<"Validation failed, skipping...\n"<<endl;
+                continue;
+
+            }
 
             //if (k<10 || k>25 || ( ii!=0 && ii!=2) ){continue;}
             Eigen::MatrixXd trajectory=load_csv<MatrixXd>(csvFiles[ii][k]);
@@ -324,13 +380,20 @@ int main(int argc, char *argv[]){
 
             //double stamp=stamps(0,0);
             double nextStamp=999999999999999;
-            if (k<(pcdFiles[0].size()-1)){
 
-                Eigen::MatrixXd nextStamps=load_csv<MatrixXd>(csvFiles[ii][k+1]);
-                nextStamp=nextStamps(0,0);
 
+            for (unsigned int n=1; n<10; n++){  //up to 10 consecutive tf failures
+                if (k<(pcdFiles[0].size()-n)){
+
+                    if (!skipFn(transforms,k+n,ii) ){
+
+                        Eigen::MatrixXd nextStamps=load_csv<MatrixXd>(csvFiles[ii][k+n]);
+                        nextStamp=nextStamps(0,0);
+                        break;
+                    }
+
+                }
             }
-
 
             double xInit=trajectory(0,1);
             double yInit=trajectory(0,2);
