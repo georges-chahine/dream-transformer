@@ -320,8 +320,8 @@ int main(int argc, char *argv[]){
 
             //if (k<10 || k>25 || ( ii!=0 && ii!=2) ){continue;}
             Eigen::MatrixXd trajectory=load_csv<MatrixXd>(csvFiles[ii][k]);
-           // Eigen::MatrixXd stamps=load_csv<MatrixXd>(csvFiles[ii][k]);
-            Eigen::MatrixXd pcStamps=load_csv<MatrixXd>(txtFiles[ii][k]);
+            // Eigen::MatrixXd stamps=load_csv<MatrixXd>(csvFiles[ii][k]);
+
             //double stamp=stamps(0,0);
             double nextStamp=999999999999999;
             if (k<(pcdFiles[0].size()-1)){
@@ -384,7 +384,7 @@ int main(int argc, char *argv[]){
 
             pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pc2 (new pcl::PointCloud<pcl::PointXYZRGBL>);
             if (!poseOnly){
-
+                Eigen::MatrixXd pcStamps=load_csv<MatrixXd>(txtFiles[ii][k]);
                 if (pcl::io::loadPCDFile<pcl::PointXYZRGBL> (pcdFiles[ii][k], *pc2) == -1) //* load the file
                 {
                     PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
