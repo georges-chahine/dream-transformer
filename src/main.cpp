@@ -427,7 +427,7 @@ int main(int argc, char *argv[]){
                 pointCloudFiltered->width=pointCloudFiltered->points.size();
 
                 std::cout<<strPcdName<<endl;
-                pcl::io::savePCDFileASCII (strPcdName, *pointCloudFiltered);
+                //pcl::io::savePCDFileASCII (strPcdName, *pointCloudFiltered);
                 pcl::io::savePLYFileASCII (strPlyName, *pointCloudFiltered);
                 // //////////////////////////////////////////VTK/////////////////////////////////////////////////////
                 typedef PointMatcher<float> PM;
