@@ -174,7 +174,7 @@ bool skipFn(MatrixXd transforms, unsigned int k, unsigned ii){
 
 
     int iTemp=0;
-     Eigen::Matrix4d tf = Eigen::Matrix4d::Identity();
+    Eigen::Matrix4d tf = Eigen::Matrix4d::Identity();
     for (int i=0; i<transforms.rows(); i++){
         if (transforms(i,0)==k && transforms(i,1)==ii){
             //if (k<10 || k>25 || ( ii!=0 && ii!=2) ){continue;}
@@ -447,7 +447,7 @@ int main(int argc, char *argv[]){
 
             pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pc2 (new pcl::PointCloud<pcl::PointXYZRGBL>);
             if (!poseOnly){
-                Eigen::MatrixXd pcStamps=load_csv<MatrixXd>(txtFiles[ii][k]);
+
                 if (pcl::io::loadPCDFile<pcl::PointXYZRGBL> (pcdFiles[ii][k], *pc2) == -1) //* load the file
                 {
                     PCL_ERROR ("Couldn't read file test_pcd.pcd \n");
@@ -460,7 +460,7 @@ int main(int argc, char *argv[]){
 
 
                 if (noOverlap){
-
+                    Eigen::MatrixXd pcStamps=load_csv<MatrixXd>(txtFiles[ii][k]);
                     for (pcl::PointCloud<pcl::PointXYZRGBL>::iterator it = pc2->begin(); it != pc2->end(); it++) {
                         int idx=it - pc2->begin();
                         if (pcStamps(idx,0)>=nextStamp) {
