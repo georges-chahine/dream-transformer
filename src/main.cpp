@@ -339,7 +339,7 @@ int main(int argc, char *argv[]){
             Eigen::Matrix4d M1=Eigen::Matrix4d::Identity();
             std::vector<std::vector<double>> transformedTrajectories;
             for (int j=0; j<trajectory.rows(); j++){
-                if (trajectory(0,0)>=nextStamp && noOverlap)
+                if (trajectory(j,0)>=nextStamp && noOverlap)
                 {
                     break;
                 }
