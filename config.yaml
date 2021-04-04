@@ -15,3 +15,4 @@ transformsCsv: "/home/gchahine/packages/dream-multi-checker/build/ol_transforms.
 transformsG2o: "/home/gchahine/packages/dream-optimizer/build/example_g2o_opt.g2o"
 useG2o: "true"
 transformPosesOnly: "false"
+noOverlap: "true"

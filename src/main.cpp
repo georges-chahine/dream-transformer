@@ -192,6 +192,17 @@ int main(int argc, char *argv[]){
     }
 
 
+    std::string noOverlapStr = config["noOverlap"].as<std::string>();
+
+    bool noOverlap=false;
+
+    if (noOverlapStr=="True" || noOverlapStr=="true")
+    {
+        noOverlap=true;
+    }
+
+
+
     std::string poseOnlyStr = config["transformPosesOnly"].as<std::string>();
 
     bool poseOnly=false;
@@ -206,6 +217,7 @@ int main(int argc, char *argv[]){
 
     std::vector<std::vector<std::string>> pcdFiles;
     std::vector<std::vector<std::string>> csvFiles;
+    std::vector<std::vector<std::string>> txtFiles;
     int dirNumber=autoMatchDir.size();
     dir=mkdir (pathOut.c_str(),S_IRWXU);
     MatrixXd transforms ;
@@ -228,10 +240,12 @@ int main(int argc, char *argv[]){
         int j=0;
         std::vector<std::string> pcdFile;
         std::vector<std::string> csvFile;
+        std::vector<std::string> txtFile;
         while(true){
 
             std::string strPcdName=autoMatchDir[i]+"/"+autoNameTemplate+std::to_string(j)+".pcd";
             std::string strCsvName=autoMatchDir[i]+"/"+autoNameTemplate+std::to_string(j)+".csv";
+            std::string strTxtName=autoMatchDir[i]+"/"+autoNameTemplate+std::to_string(j)+".txt";
             std::ifstream fCsv(strCsvName.c_str());
             std::ifstream fPcd(strPcdName.c_str());
 
@@ -243,11 +257,13 @@ int main(int argc, char *argv[]){
 
             pcdFile.push_back(strPcdName);
             csvFile.push_back(strCsvName);
+            txtFile.push_back(strTxtName);
             j++;
 
         }
         pcdFiles.push_back(pcdFile);
         csvFiles.push_back(csvFile);
+        txtFiles.push_back(txtFile);
     }
 
     std::vector<std::ofstream> poses;
@@ -302,15 +318,31 @@ int main(int argc, char *argv[]){
 
 
 
- //if (k<10 || k>25 || ( ii!=0 && ii!=2) ){continue;}
+            //if (k<10 || k>25 || ( ii!=0 && ii!=2) ){continue;}
             Eigen::MatrixXd trajectory=load_csv<MatrixXd>(csvFiles[ii][k]);
+           // Eigen::MatrixXd stamps=load_csv<MatrixXd>(csvFiles[ii][k]);
+            Eigen::MatrixXd pcStamps=load_csv<MatrixXd>(txtFiles[ii][k]);
+            //double stamp=stamps(0,0);
+            double nextStamp=999999999999999;
+            if (k<(pcdFiles[0].size()-1)){
+
+                Eigen::MatrixXd nextStamps=load_csv<MatrixXd>(csvFiles[ii][k+1]);
+                nextStamp=nextStamps(0,0);
+
+            }
+
+
             double xInit=trajectory(0,1);
             double yInit=trajectory(0,2);
             double zInit=trajectory(0,3);
             Eigen::Matrix4d prevM=Eigen::Matrix4d::Identity();
             Eigen::Matrix4d M1=Eigen::Matrix4d::Identity();
+            std::vector<std::vector<double>> transformedTrajectories;
             for (int j=0; j<trajectory.rows(); j++){
-
+                if (trajectory(0,0)>=nextStamp && noOverlap)
+                {
+                    break;
+                }
                 double xPt=trajectory(j,1)-xInit;
                 double yPt=trajectory(j,2)-yInit;
                 double zPt=trajectory(j,3)-zInit;
@@ -324,26 +356,32 @@ int main(int argc, char *argv[]){
                 M.block(0,0,3,3)=rot;
                 M(0,3)=xPt; M(1,3)=yPt; M(2,3)=zPt;
 
-            //    if (j==0){
-                    M1=tf*M;
-             //   }
-             //   else{
+                //    if (j==0){
+                M1=tf*M;
+                //   }
+                //   else{
 
-             //       M1=M1*prevM.inverse()*M;
-            //    }
-            //   prevM=M;
+                //       M1=M1*prevM.inverse()*M;
+                //    }
+                //   prevM=M;
 
-                trajectory(j,1)=M1(0,3);
-                trajectory(j,2)=M1(1,3);
-                trajectory(j,3)=M1(2,3);
+
+                //trajectory(j,1)=M1(0,3);
+                //trajectory(j,2)=M1(1,3);
+                //trajectory(j,3)=M1(2,3);
                 rot=M1.block(0,0,3,3);
                 Eigen::Quaterniond qRot2(rot);
-                trajectory(j,4)=qRot2.x();
-                trajectory(j,5)=qRot2.y();
-                trajectory(j,6)=qRot2.z();
-                trajectory(j,7)=qRot2.w();
+                std::vector<double> temp{trajectory(j,0),M1(0,3), M1(1,3), M1(2,3), qRot2.x(), qRot2.y(), qRot2.z(), qRot2.w() };
+
+                transformedTrajectories.push_back(temp);
+
+                //trajectory(j,4)=qRot2.x();
+                //trajectory(j,5)=qRot2.y();
+                //trajectory(j,6)=qRot2.z();
+                //trajectory(j,7)=qRot2.w();
 
             }
+
             pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pc2 (new pcl::PointCloud<pcl::PointXYZRGBL>);
             if (!poseOnly){
 
@@ -356,6 +394,33 @@ int main(int argc, char *argv[]){
                           << pc2->width * pc2->height
                           << " data points from "<<pcdFiles[ii][k]<< std::endl;
                 std::vector<int> indices;
+
+
+                if (noOverlap){
+
+                    for (pcl::PointCloud<pcl::PointXYZRGBL>::iterator it = pc2->begin(); it != pc2->end(); it++) {
+                        int idx=it - pc2->begin();
+                        if (pcStamps(idx,0)>=nextStamp) {
+                            pc2->erase(it);
+                        }
+                    }
+
+
+
+                    /*  for (unsigned int jj=0; jj<pc2->points.size(); jj++){
+
+                        if (pcStamps(jj,0)>=nextStamp){
+
+
+
+
+                        }
+                    }
+
+                    */
+                }
+
+
                 //  pcl::removeNaNFromPointCloud(*pc2, *pc2, indices);
 
                 pcl::VoxelGrid<pcl::PointXYZRGBL> sor;
@@ -376,10 +441,11 @@ int main(int argc, char *argv[]){
             std::ofstream csvOutput;
             csvOutput.open(strCsvName);
             csvOutput<<std::fixed<<setprecision(20);
-            for (int j=0; j<trajectory.rows(); j++){
+            for (int j=0; j<transformedTrajectories.size(); j++){
 
-                csvOutput<<trajectory(j,0)<<","<<trajectory(j,1)<<","<<trajectory(j,2)<<","<<trajectory(j,3)<<","<<trajectory(j,4)<<","<<trajectory(j,5)<<","<<trajectory(j,6)<<","<<trajectory(j,7)<<","<<std::endl;
-                poses[ii]<<trajectory(j,0)<<","<<trajectory(j,1)<<","<<trajectory(j,2)<<","<<trajectory(j,3)<<","<<trajectory(j,4)<<","<<trajectory(j,5)<<","<<trajectory(j,6)<<","<<trajectory(j,7)<<","<<std::endl;
+                csvOutput<<transformedTrajectories[j][0]<<","<<transformedTrajectories[j][1]<<","<<transformedTrajectories[j][2]<<","<<transformedTrajectories[j][3]<<","<<transformedTrajectories[j][4]<<","<<transformedTrajectories[j][5]<<","<<transformedTrajectories[j][6]<<","<<transformedTrajectories[j][7]<<std::endl;
+                poses[ii]<<transformedTrajectories[j][0]<<","<<transformedTrajectories[j][1]<<","<<transformedTrajectories[j][2]<<","<<transformedTrajectories[j][3]<<","<<transformedTrajectories[j][4]<<","<<transformedTrajectories[j][5]<<","<<transformedTrajectories[j][6]<<","<<transformedTrajectories[j][7]<<std::endl;
+
             }
 
 
