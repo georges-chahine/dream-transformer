@@ -42,6 +42,7 @@ Eigen::MatrixXd load_g2o (std::string path, MatrixXd transforms0) {
     while (inFile >> str >>idxNbr >> x >>y >>z >>qx>>qy>>qz>>qw  )
     {
         std::cout<<str<<std::endl;
+        if (str=="PARAMS_SE3OFFSET"){continue;};
         if (str=="FIX"){continue;}
         if (str!="VERTEX_SE3:QUAT"){break;}
         xV.push_back(x);
@@ -460,13 +461,22 @@ int main(int argc, char *argv[]){
 
 
                 if (noOverlap){
+                    pcl::PointCloud<pcl::PointXYZRGBL>::Ptr pc2_temp (new pcl::PointCloud<pcl::PointXYZRGBL>);
                     Eigen::MatrixXd pcStamps=load_csv<MatrixXd>(txtFiles[ii][k]);
                     for (pcl::PointCloud<pcl::PointXYZRGBL>::iterator it = pc2->begin(); it != pc2->end(); it++) {
                         int idx=it - pc2->begin();
                         if (pcStamps(idx,0)>=nextStamp) {
-                            pc2->erase(it);
+                          //  std::cout <<"pcStamps is "<<pcStamps(idx,0)<<" next stamp is "<<nextStamp<<std::endl;
+
+                            continue;
+                            //pc2->erase(it);
                         }
+                        pc2_temp->points.push_back(pc2->points[idx]);
+
                     }
+                    *pc2=*pc2_temp;
+                    pc2->height=1;
+                    pc2->width=pc2->points.size();
 
 
 
