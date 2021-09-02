@@ -1,7 +1,7 @@
 ---
 voxelSize: "0.05"
 #pathOut: "/media/gchahine/6063468A5237C350/transformerOutput/"
-pathOut: "/home/gchahine/transformerOutput/"
+pathOut: "/run/user/1000/gvfs/sftp:host=dream-storage.georgiatech-metz.fr,user=gchahine/home/gchahine/transformerOutput-2/"
 autoMatchDir:
 - "/mnt/storage/cross-seasonal-semantic-dataset/lake-bPearl/post/mapper-12-months-2/0/"
 - "/mnt/storage/cross-seasonal-semantic-dataset/lake-bPearl/post/mapper-12-months-2/1/"
@@ -19,5 +19,5 @@ autoNameTemplate: "semantic_icp_"
 transformsCsv: "/home/gchahine/packages/dream-multi-checker/build/2/19/ol_transforms.csv"
 transformsG2o: "/home/gchahine/packages/dream-optimizer/build/example_g2o_opt.g2o"
 useG2o: "true"
-transformPosesOnly: "true"
-noOverlap: "true"
+transformPosesOnly: "false"
+noOverlap: "false"
