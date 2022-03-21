@@ -22,6 +22,121 @@
 using namespace std;
 using namespace Eigen;
 
+bool is_number(const std::string& s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
+
+Eigen::Matrix4d parseData(int srcKF, int dstKF, int srcT, int dstT, vector<vector<string>> transforms)
+{
+    bool invFlag=false;
+    //  std::cout<<"dstKF is " <<dstKF<<std::endl;
+    if (dstT>srcT){
+        int tempKF, tempT;
+        tempKF=srcKF;
+        tempT=srcT;
+        srcKF=dstKF;
+        srcT=dstT;
+        dstKF=tempKF;
+        dstT=tempT;
+        invFlag=true;
+        // std::cout<<"inverted"<<std::endl;
+
+    }
+
+
+    if (dstT==srcT && dstKF>srcKF){
+        int tempKF, tempT;
+        tempKF=srcKF;
+        tempT=srcT;
+        srcKF=dstKF;
+        srcT=dstT;
+        dstKF=tempKF;
+        dstT=tempT;
+        invFlag=true;
+        // std::cout<<"inverted"<<std::endl;
+
+    }
+
+    Eigen::Matrix4d transform=Eigen::Matrix4d::Identity();
+
+    for (unsigned int i=0; i<transforms.size();i++){
+
+        if (transforms[i][0]=="%KF"){
+            int sKF=stoi(transforms[i+1][0],nullptr,0);
+            int sT=stoi(transforms[i+1][1],nullptr,0);
+            //      std::cout<<"sKF is "<<sKF<<"dstKF  is "<<dstKF<<std::endl;
+            if ((sKF==dstKF) && (sT==dstT)){
+
+                unsigned int j=2;
+                while (true){
+                    if (transforms[i+j][0]=="%KF"){break;}
+
+                    int cKF=stoi(transforms[i+j][0],nullptr,0);
+                    int cT=stoi(transforms[i+j][1],nullptr,0);
+                    //    std::cout<<"cT is "<<cT<<" dstT is "<<dstT<<std::endl;
+
+
+                    if ((cKF==srcKF) && (cT==srcT)){
+                        //   std::cout<<"ct is " <<cT<<std::endl;
+                        double x, y, z, qx, qy, qz, qw;
+                        // std::string::size_type sz;     // alias of size_t
+
+                        std::string str=transforms[i+j][2];
+                        x = std::stod (str,nullptr);
+
+                        str=transforms[i+j][3];
+                        y = std::stod (str,nullptr);
+
+                        str=transforms[i+j][4];
+                        z = std::stod (str,nullptr);
+
+                        str=transforms[i+j][5];
+                        qx = std::stod (str,nullptr);
+
+                        str=transforms[i+j][6];
+                        qy = std::stod (str,nullptr);
+
+                        str=transforms[i+j][7];
+                        qz = std::stod (str,nullptr);
+
+                        str=transforms[i+j][8];
+                        qw = std::stod (str,nullptr);
+
+
+                        // std::cout<<"return "<<qx<<" "<<qy<<" "<<qz<<" "<<qw<<std::endl;
+                        Eigen::Quaterniond q(qw,qx,qy,qz);
+                        transform(0,3)=x;
+                        transform(1,3)=y;
+                        transform(2,3)=z;
+                        Eigen::Matrix3d qMatrix(q);
+                        transform.block(0,0,3,3)=qMatrix;
+                        // std::cout<<"return: \n"<<transform<<"\n"<<std::endl;
+                        //std::cout<<"\n \n"<<std::endl;
+                        // std::cout<<qMatrix<<endl;
+                        if (invFlag) {return transform.inverse();}
+                        else {return transform;}
+
+
+
+                    }
+
+                    j++;
+
+                }
+
+
+            }
+
+        }
+    }
+
+
+    std::cout<<"csv lookup failed"<<std::endl;
+    return Eigen::Matrix4d::Identity();
+}
 
 Eigen::MatrixXd load_g2o (std::string path, MatrixXd transforms0) {
 
@@ -127,32 +242,7 @@ Eigen::MatrixXd load_g2o (std::string path, MatrixXd transforms0) {
 
     return transforms;
 }
-/*
-Eigen::MatrixXd load_g2o (std::string path) {
 
-    std::string line;
-    std::ifstream infile(path);
-
-    while (std::getline(infile, line))  // this does the checking!
-    {
-      std::istringstream iss(line);
-      char c;
-
-      while (iss >> c)
-      {
-
-          std::cout<<c;
-        //int value = c - '0';
-        // process value
-      }
-      std::cout<<std::endl;
-    }
-
-
-
-    return Eigen::Matrix4d::Identity();
-}
-*/
 template<typename M>
 M load_csv (const std::string & path) {
     std::ifstream indata;
@@ -206,7 +296,7 @@ bool skipFn(MatrixXd transforms, unsigned int k, unsigned ii){
 
 
 int main(int argc, char *argv[]){
-
+   bool semantics=false;
     int dir;
     YAML::Node config = YAML::LoadFile("../config.yaml");
     std::string leafSize0 = config["voxelSize"].as<std::string>();
@@ -214,15 +304,22 @@ int main(int argc, char *argv[]){
     std::string autoNameTemplate = config["autoNameTemplate"].as<std::string>();
     std::string transformsFile= config["transformsCsv"].as<std::string>();
     std::string g2oFile= config["transformsG2o"].as<std::string>();
+    std::string matcherFile= config["transformsMatcher"].as<std::string>();
     std::string pathOut = config["pathOut"].as<std::string>();
     std::vector<std::string> autoMatchDir = config["autoMatchDir"].as<std::vector<std::string>>();
     std::string useG2oStr = config["useG2o"].as<std::string>();
+    std::string useMatcherStr = config["useMatcher"].as<std::string>();
 
     bool useG2o=false;
 
     if (useG2oStr=="True" || useG2oStr=="true")
     {
         useG2o=true;
+    }
+    bool useMatcher=false;
+    if (useMatcherStr=="True" || useMatcherStr=="true")
+    {
+        useMatcher=true;
     }
 
 
@@ -246,7 +343,53 @@ int main(int argc, char *argv[]){
         poseOnly=true;
     }
 
+    unsigned int maxKF = 1;
+    vector<vector<string>> transforms_processed;
+    if (useMatcher){
+        std::ifstream infile(matcherFile);
 
+        //double x, y, z, qx, qy, qz, qw;
+        std::string KF;
+
+        while (infile >> KF)
+        {
+
+            //std::cout<<"KF "<<KF<<std::endl;
+            std::string str=KF;
+            vector<string> result;
+            std::stringstream ss(KF);
+            //stringstream ss=KF;
+            while( ss.good() )
+            {
+                string substr;
+                getline( ss, substr, ',' );
+                result.push_back( substr );
+
+            }
+            transforms_processed.push_back(result);
+        }
+
+
+        std::string::size_type sz;
+        for (int i=0; i<transforms_processed.size(); i++){
+
+            string maxKFStr=transforms_processed[i][0];
+
+
+            if (!is_number(maxKFStr)){
+                continue;
+            }
+
+            // alias of size_t
+            int currentMaxKf = std::stoi (maxKFStr,&sz);
+
+            if (currentMaxKf>maxKF){
+
+                maxKF=currentMaxKf;
+            }
+        }
+
+    }
 
 
     std::vector<std::vector<std::string>> pcdFiles;
@@ -263,7 +406,50 @@ int main(int argc, char *argv[]){
     }
     
     else{
-        transforms = load_csv<MatrixXd>(transformsFile);
+        if (useMatcher){
+            vector<vector<double>> values;
+            for (int i=0; i<maxKF; i++){
+
+                Eigen::Matrix4d TF=parseData(i, i,  1,  0, transforms_processed);
+                Eigen::Matrix3d R=TF.block(0,0,3,3);
+                Eigen::Quaterniond quat(R);
+                std::vector<double> tt0{i,0,0,0,0,0,0,0,1};
+                values.push_back(tt0);
+                std::vector<double> tt{double(i),1.0,TF(0,3),TF(1,3),TF(2,3),quat.x(),quat.y(),quat.z(),quat.w()};
+                values.push_back(tt);
+
+
+            }
+
+            Eigen::MatrixXd transforms2(values.size(),10);
+
+
+            //Eigen::MatrixXd transforms1(1,idxNbrV.size());
+
+            for (int i=0; i<transforms2.rows(); i++){
+
+
+                transforms2(i,0)=values[i][0];
+                transforms2(i,1)=values[i][1];
+                transforms2(i,2)=values[i][2];
+                transforms2(i,3)=values[i][3];
+                transforms2(i,4)=values[i][4];
+                transforms2(i,5)=values[i][5];
+                transforms2(i,6)=values[i][6];
+                transforms2(i,7)=values[i][7];
+                transforms2(i,8)=values[i][8];
+                transforms2(i,9)=1;
+
+
+            }
+            std::cout<<transforms2<<std::endl;
+            transforms=transforms2;
+
+
+        }
+        else{
+            transforms = load_csv<MatrixXd>(transformsFile);
+        }
     }
     
     for (unsigned int i=0;  i<dirNumber; i++ )
@@ -466,7 +652,7 @@ int main(int argc, char *argv[]){
                     for (pcl::PointCloud<pcl::PointXYZRGBL>::iterator it = pc2->begin(); it != pc2->end(); it++) {
                         int idx=it - pc2->begin();
                         if (pcStamps(idx,0)>=nextStamp) {
-                          //  std::cout <<"pcStamps is "<<pcStamps(idx,0)<<" next stamp is "<<nextStamp<<std::endl;
+                            //  std::cout <<"pcStamps is "<<pcStamps(idx,0)<<" next stamp is "<<nextStamp<<std::endl;
 
                             continue;
                             //pc2->erase(it);
@@ -565,9 +751,24 @@ int main(int argc, char *argv[]){
                 pointCloudFiltered->height=1;
                 pointCloudFiltered->width=pointCloudFiltered->points.size();
 
+                pointCloud->height=1;
+                pointCloud->width=pointCloud->points.size();
+
                 std::cout<<strPcdName<<endl;
                 //pcl::io::savePCDFileASCII (strPcdName, *pointCloudFiltered);
-                pcl::io::savePLYFileASCII (strPlyName, *pointCloudFiltered);
+
+                if (semantics)
+                {
+                    pcl::io::savePLYFileASCII (strPlyName, *pointCloudFiltered);
+                    pcl::io::savePCDFileASCII (strPcdName, *pointCloudFiltered);
+                }
+                else
+                {
+
+                    pcl::io::savePLYFileASCII (strPlyName, *pointCloud);
+                    pcl::io::savePCDFileASCII (strPcdName, *pointCloud);
+
+                }
                 // //////////////////////////////////////////VTK/////////////////////////////////////////////////////
                 typedef PointMatcher<float> PM;
                 typedef PM::DataPoints DP;
@@ -581,7 +782,7 @@ int main(int argc, char *argv[]){
                 data.addFeature("x", datax);
                 data.addFeature("y", datay);
                 data.addFeature("z", dataz);
-                bool semantics=true;
+
 
 
                 std::vector<std::string> labels { "Ground",  //0
